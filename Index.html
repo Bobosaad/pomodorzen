@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Pomodoro Quest</title>
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --secondary: #2563eb;
+            --accent: #f472b6;
+            --background: #0f172a;
+            --text: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--background), #1e293b);
+            color: var(--text);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 24px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(124, 58, 237, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        0 0 20px rgba(124, 58, 237, 0.2);
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .session-counter {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .progress-orb {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 2rem auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .timer-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0%, transparent 0%);
+            filter: drop-shadow(0 0 10px var(--primary));
+        }
+
+        .timer-display {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            z-index: 1;
+            text-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .reward-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(30, 41, 59, 0.95);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 2px solid var(--primary);
+            z-index: 100;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .reward-container.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .reward-container h2 {
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+        }
+
+        .reward-select {
+            padding: 0.8rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid var(--primary);
+            width: 200px;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="session-counter">
+            <h2>Quest Progress: <span id="sessionCount">0</span>/5</h2>
+        </div>
+        <div class="progress-orb">
+            <div class="timer-circle" id="timerCircle"></div>
+            <div class="timer-display" id="timer">25:00</div>
+        </div>
+        <div class="controls">
+            <button id="startBtn">⚔️ Begin Quest</button>
+            <button id="resetBtn">🔄 Reset</button>
+        </div>
+    </div>
+    <div class="reward-container" id="rewardContainer">
+        <h2>🎉 Epic Victory! Choose Your Reward:</h2>
+        <select id="rewardSelect" class="reward-select">
+            <option value="game">🎮 Epic Gaming Session</option>
+            <option value="movie">🎥 Watch a Movie</option>
+            <option value="relax">🧘 Meditation Break</option>
+        </select>
+        <button id="claimBtn">Claim Reward</button>
+    </div>
+    <script>
+        const timerDisplay = document.getElementById("timer");
+        const startBtn = document.getElementById("startBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const timerCircle = document.getElementById("timerCircle");
+        const sessionCount = document.getElementById("sessionCount");
+        const rewardContainer = document.getElementById("rewardContainer");
+        const rewardSelect = document.getElementById("rewardSelect");
+        const claimBtn = document.getElementById("claimBtn");
+
+        let timerInterval;
+        let timeLeft = 1500; // 25 minutes in seconds
+        let isRunning = false;
+        let sessionsCompleted = 0;
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, "0");
+            const seconds = (timeLeft % 60).toString().padStart(2, "0");
+            timerDisplay.textContent = `${minutes}:${seconds}`;
+            timerCircle.style.background = `conic-gradient(var(--primary) ${(1500 - timeLeft) / 1500 * 360}deg, transparent 0deg)`;
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    sessionsCompleted++;
+                    sessionCount.textContent = sessionsCompleted;
+                    timeLeft = 1500;
+                    updateTimerDisplay();
+
+                    if (sessionsCompleted >= 5) {
+                        rewardContainer.classList.add("show");
+                    }
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isRunning = false;
+            timeLeft = 1500;
+            updateTimerDisplay();
+        }
+
+        function claimReward() {
+            const reward = rewardSelect.value;
+            alert(`Reward claimed: ${reward}`);
+            rewardContainer.classList.remove("show");
+            sessionsCompleted = 0;
+            sessionCount.textContent = sessionsCompleted;
+        }
+
+        startBtn.addEventListener("click", startTimer);
+        resetBtn.addEventListener("click", resetTimer);
+        claimBtn.addEventListener("click", claimReward);
+
+        updateTimerDisplay();
+    </script>
+</body>
+</html>
