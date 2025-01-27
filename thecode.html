@@ -1,0 +1,61 @@
+}
+                    if (currentTime <= 0) {
+                        clearInterval(timerId);
+                        timerId = null;
+                        handleTimerComplete();
+                    }
+                }, 1000);
+                
+                btn.textContent = '⏸️ Pause Quest';
+                container.classList.add('timer-active');
+            } else {
+                clearInterval(timerId);
+                timerId = null;
+                btn.textContent = '▶️ Resume Quest';
+                container.classList.remove('timer-active');
+            }
+        }
+
+        function handleTimerComplete() {
+            playCompletionSound();
+            sessionsCompleted++;
+            document.getElementById('sessionCount').textContent = sessionsCompleted;
+            
+            if (sessionsCompleted >= 5) {
+                showReward();
+            } else {
+                const x = window.innerWidth / 2;
+                const y = window.innerHeight / 2;
+                createSparkles(x, y);
+                currentTime = workTime;
+                toggleTimer();
+            }
+            updateDisplay();
+        }
+
+        function showReward() {
+            document.getElementById('rewardContainer').classList.add('show');
+            createSparkles(window.innerWidth / 2, window.innerHeight / 2);
+        }
+
+        function startReward() {
+            document.getElementById('rewardContainer').classList.remove('show');
+            sessionsCompleted = 0;
+            document.getElementById('sessionCount').textContent = sessionsCompleted;
+            currentTime = workTime;
+            updateDisplay();
+        }
+
+        function resetTimer() {
+            clearInterval(timerId);
+            timerId = null;
+            currentTime = workTime;
+            document.getElementById('startBtn').textContent = '⚔️ Begin Quest';
+            document.querySelector('.container').classList.remove('timer-active');
+            updateDisplay();
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
